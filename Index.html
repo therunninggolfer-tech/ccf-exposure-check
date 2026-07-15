@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCF Exposure Check</title>
+<style>
+  :root {
+    --navy: #0f2744;
+    --gold: #987F40;
+    --light-blue: #6FB9D5;
+    --teal: #366775;
+    --mint: #5FC2A2;
+    --red-bg: #ffcccc;
+    --red-text: #c00000;
+    --amber-bg: #ffe5b4;
+    --amber-text: #b8610a;
+    --green-bg: #e6f9f0;
+    --green-text: #1a7a4c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f5f7fa; color: #1a1a1a;
+  }
+  /* ---------- Password gate ---------- */
+  #gate {
+    position: fixed; inset: 0; background: var(--navy);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  #gate .box {
+    background: white; padding: 40px; border-radius: 10px; width: 320px;
+    text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  }
+  #gate h2 { margin: 0 0 6px; color: var(--navy); }
+  #gate p { color: #64748b; font-size: 13px; margin: 0 0 20px; }
+  #gate input {
+    width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+    font-size: 15px; margin-bottom: 12px; text-align: center;
+  }
+  #gate button {
+    width: 100%; padding: 12px; background: var(--navy); color: white;
+    border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+  }
+  #gate .error { color: var(--red-text); font-size: 13px; height: 18px; margin-top: 8px; }
+
+  /* ---------- App shell ---------- */
+  #app { display: none; }
+  header {
+    background: var(--navy); color: white; padding: 18px 24px;
+  }
+  header .inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 19px; font-weight: 600; }
+  header .meta { font-size: 12px; opacity: .75; margin-top: 2px; }
+
+  nav { background: white; border-bottom: 1px solid #e5e9f0; }
+  nav .inner { max-width: 900px; margin: 0 auto; display: flex; gap: 4px; padding: 0 24px; }
+  nav button {
+    padding: 14px 16px; border: none; background: none; cursor: pointer;
+    font-size: 14px; color: #64748b; border-bottom: 2px solid transparent;
+  }
+  nav button.active { color: var(--navy); font-weight: 600; border-bottom-color: var(--navy); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+  .card { background: white; border: 1px solid #e5e9f0; border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 17px; color: var(--navy); }
+  .card .subtle { margin: 0; font-size: 13px; color: #64748b; }
+
+  .search-box { position: relative; margin-top: 16px; }
+  .search-box input {
+    width: 100%; padding: 12px 14px 12px 42px; border: 1px solid #cbd5e1;
+    border-radius: 6px; font-size: 14px; outline: none;
+  }
+  .search-box .icon { position: absolute; left: 14px; top: 13px; color: #94a3b8; }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-top: 1px solid #f1f5f9; cursor: pointer;
+  }
+  .result-row:hover { background: #f8fafc; }
+  .result-row .name { font-weight: 600; color: var(--navy); }
+  .result-row .sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .result-row .npv { font-weight: 600; color: var(--navy); }
+
+  .banner {
+    padding: 16px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;
+  }
+  .banner.red { background: var(--red-bg); border: 2px solid var(--red-text); }
+  .banner.red .headline { color: var(--red-text); font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+  .banner.amber { background: var(--amber-bg); border: 2px solid var(--amber-text); }
+  .banner.amber .headline { color: var(--amber-text); font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .banner.green { background: var(--green-bg); color: var(--green-text); font-size: 13px; padding: 10px 16px; }
+  .banner .detail { color: #333; }
+
+  .info-strip {
+    display: flex; gap: 24px; padding: 10px 16px; background: #fffbea;
+    border-radius: 6px; font-size: 13px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .info-strip b { color: var(--navy); }
+
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;
+  }
+  .stat { background: #f8fafc; border-radius: 6px; padding: 12px 14px; }
+  .stat .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .03em; }
+  .stat .value { font-size: 16px; font-weight: 700; color: var(--navy); margin-top: 2px; }
+
+  label { display: block; font-size: 13px; font-weight: 500; color: #334155; margin: 14px 0 6px; }
+  input[type=number] {
+    width: 100%; padding: 11px 13px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;
+  }
+
+  .calc-result {
+    margin-top: 20px; padding: 18px; background: var(--navy); color: white; border-radius: 8px;
+  }
+  .calc-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+  .calc-row.total { font-size: 19px; font-weight: 700; border-top: 1px solid rgba(255,255,255,.2); margin-top: 8px; padding-top: 10px; }
+
+  .btn { padding: 10px 16px; background: var(--navy); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .btn.secondary { background: white; color: var(--navy); border: 1px solid #cbd5e1; }
+
+  .disabled-notice { padding: 16px; background: #f1f5f9; border-radius: 6px; color: #64748b; font-size: 14px; text-align: center; }
+
+  .footer-note { font-size: 11px; color: #94a3b8; margin-top: 10px; text-align: right; }
+  .loading { text-align: center; padding: 40px; color: #64748b; }
+</style>
+</head>
+<body>
+
+<!-- ============ PASSWORD GATE ============ -->
+<div id="gate">
+  <div class="box">
+    <h2>CCF Exposure Check</h2>
+    <p>Enter password to continue</p>
+    <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')tryUnlock()">
+    <button onclick="tryUnlock()">Unlock</button>
+    <div class="error" id="gateError"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header>
+    <div class="inner">
+      <div>
+        <h1>CCF Exposure Check</h1>
+        <div class="meta" id="dataMeta">Loading data…</div>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="inner">
+      <button class="tab-btn active" data-tab="lookup" onclick="switchTab('lookup')">Lookup</button>
+      <button class="tab-btn" data-tab="calc" onclick="switchTab('calc')">Settlement Calculator</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- LOOKUP TAB -->
+    <div id="tab-lookup">
+      <div class="card">
+        <h2>Search Client</h2>
+        <p class="subtle">Search by client name or account number.</p>
+        <div class="search-box">
+          <span class="icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="e.g. Lifemed, TOR002..." oninput="onSearch()">
+        </div>
+      </div>
+      <div id="searchResults"></div>
+      <div id="clientDetail"></div>
+    </div>
+
+    <!-- CALCULATOR TAB -->
+    <div id="tab-calc" style="display:none">
+      <div class="card">
+        <h2>New Deal / Settlement Calculator</h2>
+        <p class="subtle">Search for a client, then work out net exposure after settlement.</p>
+        <div class="search-box">
+          <span class="icon">🔍</span>
+          <input type="text" id="calcSearchInput" placeholder="Search for client..." oninput="onCalcSearch()">
+        </div>
+        <div id="calcResults"></div>
+        <div id="calcDetail"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// =====================================================================
+// CONFIG — edit these two lines after deploying your Worker
+// =====================================================================
+const WORKER_URL = "https://ccf-exposure-check.francois-2cd.workers.dev";
+const APP_KEY = "12345678910111213";
+
+// Password gate — SHA-256 hash of the password (same pattern as Unified Credit Engine)
+// Generate your hash at https://emn178.github.io/online-tools/sha256.html or via:
+//   echo -n "yourpassword" | shasum -a 256
+const PASSWORD_HASH = "dea9cc4d6023398b8701cdaaf8910778f67e16713cd17dcee20001f9955bcb24";
+
+// =====================================================================
+
+let CLIENT_DATA = [];
+let DATA_META = {};
+
+async function sha256(text) {
+  const enc = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function tryUnlock() {
+  const pw = document.getElementById("pw").value;
+  const hash = await sha256(pw);
+  if (hash === PASSWORD_HASH) {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    loadData();
+  } else {
+    document.getElementById("gateError").textContent = "Incorrect password.";
+  }
+}
+
+async function loadData() {
+  document.getElementById("dataMeta").textContent = "Loading client data…";
+  try {
+    const resp = await fetch(WORKER_URL + "/data", {
+      headers: { "X-App-Key": APP_KEY }
+    });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    CLIENT_DATA = data.clients || data; // supports either {clients:[...]} or raw array
+    DATA_META = data.meta || {};
+    const count = CLIENT_DATA.length;
+    const asOf = DATA_META.generated || "unknown";
+    document.getElementById("dataMeta").textContent =
+      `${count.toLocaleString()} clients loaded · data as of ${asOf}`;
+  } catch (e) {
+    document.getElementById("dataMeta").textContent = "⚠ Failed to load data: " + e.message;
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.getElementById("tab-lookup").style.display = tab === "lookup" ? "block" : "none";
+  document.getElementById("tab-calc").style.display = tab === "calc" ? "block" : "none";
+}
+
+function fmtZAR(n) {
+  if (n === null || n === undefined || n === "" || isNaN(n)) return "R 0.00";
+  return "R " + Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function matchClients(term) {
+  term = term.trim().toUpperCase();
+  if (term.length < 2) return [];
+  return CLIENT_DATA.filter(c =>
+    (c.name && c.name.toUpperCase().includes(term)) ||
+    (c.acc_no && c.acc_no.toUpperCase().includes(term))
+  ).slice(0, 25);
+}
+
+// ---------------- LOOKUP TAB ----------------
+function onSearch() {
+  const term = document.getElementById("searchInput").value;
+  const results = matchClients(term);
+  const el = document.getElementById("searchResults");
+  document.getElementById("clientDetail").innerHTML = "";
+  if (term.trim().length < 2) { el.innerHTML = ""; return; }
+  if (results.length === 0) {
+    el.innerHTML = `<div class="card">No clients found matching "${escapeHtml(term)}".</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="card">` + results.map(c => `
+    <div class="result-row" onclick="showClient('${escapeAttr(c.acc_no)}','${escapeAttr(c.name)}')">
+      <div>
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="sub">${escapeHtml(c.acc_no || "—")}</div>
+      </div>
+      <div class="npv">${fmtZAR(c.total_npv)}</div>
+    </div>
+  `).join("") + `</div>`;
+}
+
+function findClient(acc_no, name) {
+  return CLIENT_DATA.find(c => c.acc_no === acc_no && c.name === name) ||
+         CLIENT_DATA.find(c => c.name === name);
+}
+
+function showClient(acc_no, name) {
+  const c = findClient(acc_no, name);
+  if (!c) return;
+  document.getElementById("clientDetail").innerHTML = renderClientCard(c);
+}
+
+function renderClientCard(c) {
+  let html = `<div class="card">`;
+  html += `<h2>${escapeHtml(c.name)} <span style="font-weight:400;color:#64748b;font-size:13px">${escapeHtml(c.acc_no||"")}</span></h2>`;
+
+  // RED — write off
+  if (c.write_off) {
+    html += `<div class="banner red">
+      <div class="headline">🔴 DO NOT PROCEED — CLIENT HAS PRIOR WRITE-OFF WITH CCF</div>
+      <div class="detail">${escapeHtml(c.write_off_detail || "")}</div>
+    </div>`;
+  }
+
+  // AMBER — legal
+  if (c.legal_flag) {
+    html += `<div class="banner amber">
+      <div class="headline">🟠 LEGAL HISTORY — VERIFY BEFORE PROCEEDING</div>
+      <div class="detail">${escapeHtml(c.legal_status || c.legal_flag)}</div>
+    </div>`;
+  }
+
+  // Bounce info strip
+  if (c.bounces) {
+    html += `<div class="info-strip">💛 <b>${c.bounces}</b> bounce${c.bounces==1?'':'s'} on record`;
+    if (c.last_bounce) html += ` &nbsp;|&nbsp; Last bounce: <b>${escapeHtml(c.last_bounce)}</b>`;
+    html += `</div>`;
+  } else {
+    html += `<div class="banner green">No bounce history on record.</div>`;
+  }
+
+  // No flags at all
+  if (!c.write_off && !c.legal_flag && !c.bounces) {
+    html += `<div class="banner green">✅ No risk flags on record.</div>`;
+  }
+
+  // Exposure stats
+  html += `<div class="stats-grid">`;
+  html += stat("Total NPV (Exposure)", fmtZAR(c.total_npv));
+  html += stat("Total Rental", fmtZAR(c.total_rental));
+  html += stat("Active Deals", c.active_deals ?? "0");
+  html += stat("Years as Client", c.years_as_client ?? "—");
+  html += stat("First Deal Date", c.first_deal_date || "—");
+  html += stat("Last Deal Date", c.last_deal_date || "—");
+  html += `</div>`;
+
+  html += `<div class="footer-note">Checked: Exposure | Write-offs | Legal | Bounces — data as of ${escapeHtml(DATA_META.generated||"—")}</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function stat(label, value) {
+  return `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+}
+
+// ---------------- CALCULATOR TAB ----------------
+let calcClient = null;
+
+function onCalcSearch() {
+  const term = document.getElementById("calcSearchInput").value;
+  const results = matchClients(term);
+  const el = document.getElementById("calcResults");
+  if (term.trim().length < 2) { el.innerHTML = ""; return; }
+  if (results.length === 0) {
+    el.innerHTML = `<div style="padding:16px;background:#ecfdf5;border:1px solid #86efac;border-radius:6px;margin-top:12px;">
+      <strong>New client</strong> — no existing exposure with CCF.
+      <button class="btn" style="margin-left:10px" onclick='selectNewClient(${JSON.stringify(term)})'>Use "${escapeHtml(term)}" as new client</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = results.map(c => `
+    <div class="result-row" onclick="selectCalcClient('${escapeAttr(c.acc_no)}','${escapeAttr(c.name)}')">
+      <div class="name">${escapeHtml(c.name)}</div>
+      <div class="npv">${fmtZAR(c.total_npv)}</div>
+    </div>
+  `).join("");
+}
+
+function selectNewClient(name) {
+  calcClient = { name, acc_no: "", total_npv: 0, write_off: null, legal_flag: null };
+  renderCalc();
+}
+function selectCalcClient(acc_no, name) {
+  calcClient = findClient(acc_no, name);
+  renderCalc();
+}
+
+function renderCalc() {
+  document.getElementById("calcResults").innerHTML = "";
+  document.getElementById("calcSearchInput").value = "";
+  const el = document.getElementById("calcDetail");
+  const c = calcClient;
+
+  let html = `<div style="margin-top:16px;padding:14px 16px;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+    <div><div style="font-size:12px;color:#64748b">SELECTED CLIENT</div>
+    <div style="font-weight:600;font-size:15px">${escapeHtml(c.name)}</div></div>
+    <button class="btn secondary" onclick="resetCalc()">Change</button>
+  </div>`;
+
+  if (c.write_off) {
+    html += `<div class="banner red" style="margin-top:14px">
+      <div class="headline">🔴 DO NOT PROCEED — CLIENT HAS PRIOR WRITE-OFF WITH CCF</div>
+      <div class="detail">${escapeHtml(c.write_off_detail||"")}</div>
+    </div>`;
+    html += `<div class="disabled-notice">Settlement calculator disabled for this client — permanent hard stop, no exceptions.</div>`;
+    el.innerHTML = html;
+    return;
+  }
+
+  if (c.legal_flag) {
+    html += `<div class="banner amber" style="margin-top:14px">
+      <div class="headline">🟠 LEGAL HISTORY — VERIFY BEFORE PROCEEDING</div>
+      <div class="detail">${escapeHtml(c.legal_status||c.legal_flag)}</div>
+    </div>`;
+  }
+
+  html += `<label>Amount being settled (ZAR)</label>
+  <input type="number" id="settleAmt" placeholder="0.00" oninput="updateCalcResult()">
+  <label>New deal amount (ZAR)</label>
+  <input type="number" id="newDealAmt" placeholder="0.00" oninput="updateCalcResult()">
+  <div class="calc-result" id="calcResultBox"></div>`;
+
+  el.innerHTML = html;
+  updateCalcResult();
+}
+
+function updateCalcResult() {
+  const c = calcClient;
+  const settleAmt = parseFloat(document.getElementById("settleAmt")?.value) || 0;
+  const newDeal = parseFloat(document.getElementById("newDealAmt")?.value) || 0;
+  const existing = c.total_npv || 0;
+  const netExisting = existing - settleAmt;
+  const newTotal = netExisting + newDeal;
+
+  document.getElementById("calcResultBox").innerHTML = `
+    <div class="calc-row"><span>Existing exposure</span><span>${fmtZAR(existing)}</span></div>
+    <div class="calc-row"><span>− Amount being settled</span><span>${fmtZAR(settleAmt)}</span></div>
+    <div class="calc-row"><span>+ New deal amount</span><span>${fmtZAR(newDeal)}</span></div>
+    <div class="calc-row total"><span>New total exposure</span><span>${fmtZAR(newTotal)}</span></div>
+  `;
+}
+
+function resetCalc() {
+  calcClient = null;
+  document.getElementById("calcDetail").innerHTML = "";
+}
+
+// ---------------- utils ----------------
+function escapeHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+function escapeAttr(s) { return escapeHtml(s).replace(/'/g, "\\'"); }
+</script>
+</body>
+</html>
