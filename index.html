@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -123,6 +124,18 @@
   .disabled-notice { padding: 16px; background: #f1f5f9; border-radius: 6px; color: #64748b; font-size: 14px; text-align: center; }
 
   .footer-note { font-size: 11px; color: #94a3b8; margin-top: 10px; text-align: right; }
+
+  .deals-section { margin-top: 20px; }
+  .deals-section h3 { font-size: 14px; color: var(--navy); margin: 0 0 10px; }
+  .deals-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .deals-table th {
+    text-align: left; padding: 8px 10px; background: #f1f5f9; color: #64748b;
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em;
+  }
+  .deals-table td { padding: 8px 10px; border-top: 1px solid #f1f5f9; }
+  .deals-table tr:hover td { background: #f8fafc; }
+  .deals-table .npv-cell { text-align: right; font-weight: 600; color: var(--navy); }
+  .no-deals { font-size: 13px; color: #94a3b8; padding: 10px 0; }
   .loading { text-align: center; padding: 40px; color: #64748b; }
 </style>
 </head>
@@ -192,13 +205,13 @@
 // =====================================================================
 // CONFIG — edit these two lines after deploying your Worker
 // =====================================================================
-const WORKER_URL = "https://ccf-exposure-check.francois-2cd.workers.dev";
-const APP_KEY = "12345678910111213";
+const WORKER_URL = "https://ccf-exposure-check.YOUR-SUBDOMAIN.workers.dev";
+const APP_KEY = "REPLACE_WITH_YOUR_APP_KEY";
 
 // Password gate — SHA-256 hash of the password (same pattern as Unified Credit Engine)
 // Generate your hash at https://emn178.github.io/online-tools/sha256.html or via:
 //   echo -n "yourpassword" | shasum -a 256
-const PASSWORD_HASH = "dea9cc4d6023398b8701cdaaf8910778f67e16713cd17dcee20001f9955bcb24";
+const PASSWORD_HASH = "REPLACE_WITH_SHA256_HASH_OF_YOUR_PASSWORD";
 
 // =====================================================================
 
@@ -337,6 +350,28 @@ function renderClientCard(c) {
   html += stat("Years as Client", c.years_as_client ?? "—");
   html += stat("First Deal Date", c.first_deal_date || "—");
   html += stat("Last Deal Date", c.last_deal_date || "—");
+  html += `</div>`;
+
+  // Individual deals with supplier
+  html += `<div class="deals-section"><h3>Active Deals${c.deals && c.deals.length ? " (" + c.deals.length + ")" : ""}</h3>`;
+  if (c.deals && c.deals.length) {
+    html += `<table class="deals-table"><thead><tr>
+      <th>Serial No</th><th>Contract No</th><th>Supplier</th><th>Rental</th><th>Closing NPV</th><th>Status</th>
+    </tr></thead><tbody>`;
+    c.deals.forEach(d => {
+      html += `<tr>
+        <td>${escapeHtml(d.serial_no || "—")}</td>
+        <td>${escapeHtml(d.contract_no || "—")}</td>
+        <td>${escapeHtml(d.supplier || "—")}</td>
+        <td class="npv-cell">${fmtZAR(d.rental)}</td>
+        <td class="npv-cell">${fmtZAR(d.closing_npv)}</td>
+        <td>${escapeHtml(d.settled_legal || "—")}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else {
+    html += `<div class="no-deals">No individual deal records available for this client.</div>`;
+  }
   html += `</div>`;
 
   html += `<div class="footer-note">Checked: Exposure | Write-offs | Legal | Bounces — data as of ${escapeHtml(DATA_META.generated||"—")}</div>`;
