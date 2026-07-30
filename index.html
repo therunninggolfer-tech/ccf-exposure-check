@@ -205,13 +205,13 @@
 // =====================================================================
 // CONFIG — edit these two lines after deploying your Worker
 // =====================================================================
-const WORKER_URL = "https://ccf-exposure-check.francois-2cd.workers.dev";
-const APP_KEY = "12345678910111213";
+const WORKER_URL = "https://ccf-exposure-check.YOUR-SUBDOMAIN.workers.dev";
+const APP_KEY = "REPLACE_WITH_YOUR_APP_KEY";
 
 // Password gate — SHA-256 hash of the password (same pattern as Unified Credit Engine)
 // Generate your hash at https://emn178.github.io/online-tools/sha256.html or via:
 //   echo -n "yourpassword" | shasum -a 256
-const PASSWORD_HASH = "dea9cc4d6023398b8701cdaaf8910778f67e16713cd17dcee20001f9955bcb24";
+const PASSWORD_HASH = "REPLACE_WITH_SHA256_HASH_OF_YOUR_PASSWORD";
 
 // =====================================================================
 
@@ -359,6 +359,9 @@ function renderClientCard(c) {
       <th>Serial No</th><th>Contract No</th><th>Supplier</th><th>Rental</th><th>Closing NPV</th><th>Status</th>
     </tr></thead><tbody>`;
     c.deals.forEach(d => {
+      const hasRecourse = d.recourse && String(d.recourse).trim() !== "" &&
+                           String(d.recourse).trim() !== "0" && String(d.recourse).trim().toUpperCase() !== "N/A" &&
+                           String(d.recourse).trim().toUpperCase() !== "NIL" && String(d.recourse).trim().toUpperCase() !== "NONE";
       html += `<tr>
         <td>${escapeHtml(d.serial_no || "—")}</td>
         <td>${escapeHtml(d.contract_no || "—")}</td>
@@ -367,6 +370,13 @@ function renderClientCard(c) {
         <td class="npv-cell">${fmtZAR(d.closing_npv)}</td>
         <td>${escapeHtml(d.settled_legal || "—")}</td>
       </tr>`;
+      if (hasRecourse) {
+        html += `<tr><td colspan="6" style="padding:6px 10px 10px;border-top:none;">
+          <span style="display:inline-block;background:#fff4e6;border:1px solid #ffd8a8;border-radius:4px;padding:3px 8px;font-size:12px;color:#b8610a;">
+            ⚠ Supplier recourse: <b>${escapeHtml(d.recourse)}</b>${d.recourse_note ? " — " + escapeHtml(d.recourse_note) : ""}
+          </span>
+        </td></tr>`;
+      }
     });
     html += `</tbody></table>`;
   } else {
