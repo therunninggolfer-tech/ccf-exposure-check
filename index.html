@@ -371,7 +371,6 @@ function renderClientCard(c) {
         <td>${escapeHtml(d.settled_legal || "—")}</td>
         <td>${d.collection_agent && String(d.collection_agent).trim() !== "" ? "Yes" : "No"}</td>
       </tr>`;
-      </tr>`;
       if (hasRecourse) {
         html += `<tr><td colspan="7" style="padding:6px 10px 10px;border-top:none;">
           <span style="display:inline-block;background:#fff4e6;border:1px solid #ffd8a8;border-radius:4px;padding:3px 8px;font-size:12px;color:#b8610a;">
