@@ -361,7 +361,7 @@ function renderClientCard(c) {
   html += `<div class="deals-section"><h3>Active Deals${c.deals && c.deals.length ? " (" + c.deals.length + ")" : ""}</h3>`;
   if (c.deals && c.deals.length) {
     html += `<table class="deals-table"><thead><tr>
-      <th>Serial No</th><th>Contract No</th><th>Supplier</th><th>Rental</th><th>Closing NPV</th><th>Status</th>
+      <th>Serial No</th><th>Contract No</th><th>Supplier</th><th>Rental</th><th>Closing NPV</th><th>Status</th><th>Collection Agency</th>
     </tr></thead><tbody>`;
     c.deals.forEach(d => {
       html += `<tr>
@@ -370,8 +370,16 @@ function renderClientCard(c) {
         <td>${escapeHtml(d.supplier || "—")}</td>
         <td class="npv-cell">${fmtZAR(d.rental)}</td>
         <td class="npv-cell">${fmtZAR(d.closing_npv)}</td>
-        <td>${escapeHtml(d.settled_legal || "—")}</td>
+              <td>${escapeHtml(d.settled_legal || "—")}</td>
+        <td>${d.collection_agent && String(d.collection_agent).trim() !== "" ? "Yes" : "No"}</td>
       </tr>`;
+      if (d.recourse && String(d.recourse).trim() !== "" && String(d.recourse).trim() !== "0" && String(d.recourse).trim().toUpperCase() !== "N/A" && String(d.recourse).trim().toUpperCase() !== "NIL" && String(d.recourse).trim().toUpperCase() !== "NONE") {
+        html += `<tr><td colspan="7" style="padding:6px 10px 10px;border-top:none;">
+          <span style="display:inline-block;background:#fff4e6;border:1px solid #ffd8a8;border-radius:4px;padding:3px 8px;font-size:12px;color:#b8610a;">
+            ⚠ Supplier recourse: <b>${escapeHtml(d.recourse)}</b>${d.recourse_note ? " — " + escapeHtml(d.recourse_note) : ""}
+          </span>
+        </td></tr>`;
+      }
     });
     html += `</tbody></table>`;
   } else {
